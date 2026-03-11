@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { getTodayString } from "@/lib/utils";
 import { Category } from "@/lib/constants";
 import CategorySection from "@/components/dashboard/CategorySection";
+import WeatherStrip from "@/components/dashboard/WeatherStrip";
 
 export default function DashboardPage() {
   const today = getTodayString();
@@ -84,16 +85,23 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── DAILY — full-width accent strip ── */}
-      <div className="rounded-2xl border-2 border-accent/25 bg-accent-light p-5 shadow-[4px_4px_0px_0px_rgba(108,92,231,0.12)]">
-        <CategorySection
-          category="daily"
-          variant="daily"
-          tasks={tasksByCategory.daily}
-          today={today}
-          userId={user.id}
-          progressLabel={dailyTotal > 0 ? `${dailyDone}/${dailyTotal}` : undefined}
-        />
+      {/* ── DAILY + WEATHER — two-column row ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch">
+        {/* Left: Daily Habits */}
+        <div className="rounded-2xl border-2 border-accent/25 bg-accent-light p-5 shadow-[4px_4px_0px_0px_rgba(108,92,231,0.12)] h-full">
+          <CategorySection
+            category="daily"
+            variant="daily"
+            tasks={tasksByCategory.daily}
+            today={today}
+            userId={user.id}
+            progressLabel={dailyTotal > 0 ? `${dailyDone}/${dailyTotal}` : undefined}
+          />
+        </div>
+        {/* Right: Weather */}
+        <div className="rounded-2xl border-2 border-border bg-card p-5 shadow-[4px_4px_0px_0px_rgba(108,92,231,0.06)] h-full">
+          <WeatherStrip />
+        </div>
       </div>
 
       {/* ── PERSONAL — full-width card ── */}
