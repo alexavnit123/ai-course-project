@@ -36,6 +36,10 @@ const _schema = i.schema({
       completedAt: i.number(),
       ownerId: i.string().indexed(),
     }),
+    userSettings: i.entity({
+      linearApiKey: i.string().optional(),
+      ownerId: i.string().indexed(),
+    }),
   },
   links: {
     $streams$files: {
@@ -102,6 +106,10 @@ const _schema = i.schema({
         has: "many",
         label: "dailyCompletions",
       },
+    },
+    userSettingsOwner: {
+      forward: { on: "userSettings", has: "one", label: "owner", onDelete: "cascade" },
+      reverse: { on: "$users", has: "many", label: "userSettings" },
     },
   },
   rooms: {},

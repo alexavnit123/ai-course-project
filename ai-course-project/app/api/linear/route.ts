@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { LINEAR_ASSIGNED_QUERY } from "@/lib/linear";
 
 export async function GET(_req: NextRequest) {
-  const apiKey = process.env.LINEAR_PERSONAL_API_KEY;
+  const apiKey =
+    _req.headers.get("X-Linear-Api-Key") ??
+    process.env.LINEAR_PERSONAL_API_KEY ??
+    null;
 
   if (!apiKey) {
     return NextResponse.json(
@@ -24,7 +27,7 @@ export async function GET(_req: NextRequest) {
 
     if (!res.ok) {
       return NextResponse.json(
-        { connected: true, issues: [] },
+        { connected: false, issues: [] },
         { status: 200 }
       );
     }
@@ -36,7 +39,6 @@ export async function GET(_req: NextRequest) {
       { connected: true, issues },
       {
         status: 200,
-        headers: { "Cache-Control": "private, max-age=300" },
       }
     );
   } catch {

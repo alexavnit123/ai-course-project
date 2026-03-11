@@ -1,23 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { db } from "@/lib/db";
 import AuthGate from "@/components/auth/AuthGate";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import IntegrationCard from "@/components/settings/IntegrationCard";
 import Button from "@/components/ui/Button";
-import { LinearApiResponse } from "@/lib/linear";
+import ConnectLinearModal from "@/components/settings/ConnectLinearModal";
 
 function SettingsContent() {
   const { user } = db.useAuth();
-  const [linearConnected, setLinearConnected] = useState(false);
+  const [showConnectModal, setShowConnectModal] = useState(false);
+  const { data: settingsData } = db.useQuery({ userSettings: {} });
+  const userSettings = settingsData?.userSettings?.[0];
+  const linearApiKey = userSettings?.linearApiKey ?? null;
+  const linearConnected = !!linearApiKey;
 
-  useEffect(() => {
-    fetch("/api/linear")
-      .then((r) => r.json())
-      .then((d: LinearApiResponse) => setLinearConnected(d.connected))
-      .catch(() => {});
-  }, []);
+  const handleDisconnect = () => {
+    if (userSettings) db.transact(db.tx.userSettings[userSettings.id].delete());
+  };
 
   return (
     <div className="max-w-2xl mx-auto flex flex-col gap-8">
@@ -77,6 +78,8 @@ function SettingsContent() {
             name="Linear"
             description="Sync Linear issues as tasks and stay on top of your engineering work."
             connected={linearConnected}
+            onConnect={() => setShowConnectModal(true)}
+            onDisconnect={handleDisconnect}
             icon={
               <svg
                 width="20"
@@ -149,6 +152,15 @@ function SettingsContent() {
           />
         </div>
       </section>
+
+      {user && (
+        <ConnectLinearModal
+          isOpen={showConnectModal}
+          onClose={() => setShowConnectModal(false)}
+          userId={user.id}
+          existingSettingsId={userSettings?.id}
+        />
+      )}
     </div>
   );
 }

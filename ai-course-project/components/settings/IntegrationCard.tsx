@@ -6,6 +6,8 @@ interface IntegrationCardProps {
   icon: React.ReactNode;
   comingSoon?: boolean;
   connected?: boolean;
+  onConnect?: () => void;
+  onDisconnect?: () => void;
 }
 
 export default function IntegrationCard({
@@ -14,6 +16,8 @@ export default function IntegrationCard({
   icon,
   comingSoon = false,
   connected = false,
+  onConnect,
+  onDisconnect,
 }: IntegrationCardProps) {
   return (
     <div
@@ -46,12 +50,23 @@ export default function IntegrationCard({
           Coming soon
         </button>
       ) : connected ? (
-        <div className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 border-green-200 text-xs font-semibold text-green-600">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-          Connected
+        <div className="shrink-0 flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 border-green-200 text-xs font-semibold text-green-600">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+            Connected
+          </div>
+          {onDisconnect && (
+            <button
+              onClick={onDisconnect}
+              className="px-3 py-1.5 rounded-xl border-2 border-border text-xs font-semibold text-muted-foreground hover:border-red-300 hover:text-red-500 transition-all"
+            >
+              Disconnect
+            </button>
+          )}
         </div>
       ) : (
         <button
+          onClick={onConnect}
           className="shrink-0 px-3 py-1.5 rounded-xl border-2 text-xs font-semibold border-accent text-accent hover:bg-accent hover:text-white transition-all"
         >
           Connect

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { LinearIssue, LinearApiResponse } from "@/lib/linear";
 import { dateStringToTimestamp, formatDueDate } from "@/lib/utils";
+import { db } from "@/lib/db";
 
 function PriorityDot({ priority }: { priority: number }) {
   if (priority === 0) return null;
@@ -75,11 +76,20 @@ function IssueRow({ issue }: { issue: LinearIssue }) {
 }
 
 export default function LinearSection() {
+  const { data: settingsData } = db.useQuery({ userSettings: {} });
+  const linearApiKey = settingsData?.userSettings?.[0]?.linearApiKey ?? null;
+
   const [issues, setIssues] = useState<LinearIssue[]>([]);
   const [status, setStatus] = useState<"loading" | "done">("loading");
 
   useEffect(() => {
-    fetch("/api/linear")
+    if (!linearApiKey) {
+      setStatus("done");
+      return;
+    }
+    fetch("/api/linear", {
+      headers: { "X-Linear-Api-Key": linearApiKey },
+    })
       .then((r) => {
         if (!r.ok) throw new Error("non-200");
         return r.json() as Promise<LinearApiResponse>;
@@ -89,7 +99,7 @@ export default function LinearSection() {
         setStatus("done");
       })
       .catch(() => setStatus("done"));
-  }, []);
+  }, [linearApiKey]);
 
   if (status === "loading" || issues.length === 0) return null;
 
