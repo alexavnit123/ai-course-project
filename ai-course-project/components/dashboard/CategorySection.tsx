@@ -5,6 +5,7 @@ import { Category, CATEGORY_LABELS, SortMode } from "@/lib/constants";
 import { isOverdue, cn } from "@/lib/utils";
 import TaskList from "./TaskList";
 import CompletedSection from "./CompletedSection";
+import LinearSection from "./LinearSection";
 import CreateTaskModal from "@/components/tasks/CreateTaskModal";
 import { TaskWithCompletions } from "./TaskCard";
 
@@ -235,27 +236,30 @@ export default function CategorySection({
 
       {/* Task list */}
       {activeTasks.length === 0 && completedTasks.length === 0 ? (
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className={
-            isDaily
-              ? "flex items-center gap-3 py-4 px-4 rounded-xl border-2 border-dashed border-accent/30 text-accent/60 hover:border-accent/60 hover:text-accent hover:bg-accent/5 transition-all group"
-              : "flex flex-col items-center gap-2 py-8 rounded-xl border-2 border-dashed border-border text-muted-foreground hover:border-accent/50 hover:text-accent hover:bg-accent-light/30 transition-all group"
-          }
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-            className="group-hover:scale-110 transition-transform shrink-0"
+        <>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className={
+              isDaily
+                ? "flex items-center gap-3 py-4 px-4 rounded-xl border-2 border-dashed border-accent/30 text-accent/60 hover:border-accent/60 hover:text-accent hover:bg-accent/5 transition-all group"
+                : "flex flex-col items-center gap-2 py-8 rounded-xl border-2 border-dashed border-border text-muted-foreground hover:border-accent/50 hover:text-accent hover:bg-accent-light/30 transition-all group"
+            }
           >
-            <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-          <span className="text-xs font-medium">
-            {isDaily ? "Add a daily habit" : "Add a task"}
-          </span>
-        </button>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              className="group-hover:scale-110 transition-transform shrink-0"
+            >
+              <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+            <span className="text-xs font-medium">
+              {isDaily ? "Add a daily habit" : "Add a task"}
+            </span>
+          </button>
+          {category === "business" && <LinearSection />}
+        </>
       ) : (
         <>
           <TaskList
@@ -264,6 +268,7 @@ export default function CategorySection({
             userId={userId}
             dailyVariant={isDaily}
           />
+          {category === "business" && <LinearSection />}
           <CompletedSection tasks={completedTasks} today={today} userId={userId} dailyVariant={isDaily} />
         </>
       )}

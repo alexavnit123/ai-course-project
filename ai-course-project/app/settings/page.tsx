@@ -1,13 +1,23 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { db } from "@/lib/db";
 import AuthGate from "@/components/auth/AuthGate";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import IntegrationCard from "@/components/settings/IntegrationCard";
 import Button from "@/components/ui/Button";
+import { LinearApiResponse } from "@/lib/linear";
 
 function SettingsContent() {
   const { user } = db.useAuth();
+  const [linearConnected, setLinearConnected] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/linear")
+      .then((r) => r.json())
+      .then((d: LinearApiResponse) => setLinearConnected(d.connected))
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="max-w-2xl mx-auto flex flex-col gap-8">
@@ -66,7 +76,7 @@ function SettingsContent() {
           <IntegrationCard
             name="Linear"
             description="Sync Linear issues as tasks and stay on top of your engineering work."
-            comingSoon
+            connected={linearConnected}
             icon={
               <svg
                 width="20"

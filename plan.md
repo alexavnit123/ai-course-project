@@ -324,6 +324,131 @@ export type SortMode = "manual" | "priority" | "dueDate";
 
 ---
 
+## 12. Weather Integration (Phase 5)
+
+### 12.1 Overview
+
+Adds a 7-day local weather forecast panel to the dashboard, occupying the right half of the Daily Habits row. Location is determined automatically from the user's IP address — no permission prompt required.
+
+### 12.2 Architecture
+
+Two sequential server-side fetches inside a Next.js API route:
+
+1. **IP geolocation** via `ipapi.co/{ip}/json/` (free, no API key)
+   - IP read from `x-forwarded-for` (first value) or `x-real-ip` headers
+   - Loopback addresses (`127.0.0.1`, `::1`) fall back to London for local dev
+2. **7-day forecast** via `https://api.open-meteo.com/v1/forecast` (free, no API key)
+   - Params: `latitude`, `longitude`, `daily=temperature_2m_max,temperature_2m_min,weathercode`, `timezone=auto`, `forecast_days=7`, `temperature_unit=celsius`
+
+Response shape: `{ city: string, daily: Array<{ date, weatherCode, tempMax, tempMin }> }` with `Cache-Control: private, max-age=3600`.
+
+### 12.3 WMO Code → Emoji Mapping (`lib/weather.ts`)
+
+| Code(s) | Condition | Emoji |
+|---------|-----------|-------|
+| 0 | Clear sky | ☀️ |
+| 1–3 | Partly cloudy | ⛅ |
+| 45, 48 | Fog | 🌫️ |
+| 51–67 | Drizzle / Rain | 🌧️ |
+| 71–77 | Snow | 🌨️ |
+| 80–86 | Rain/snow showers | 🌦️ |
+| 95–99 | Thunderstorm | ⛈️ |
+| Other | Fallback | 🌡️ |
+
+### 12.4 Layout Change
+
+Daily Habits row split from full-width into a responsive two-column grid:
+```
+┌─────────────────────┬─────────────────────┐
+│   Daily Habits      │  Weather Forecast   │
+│   (accent card)     │  (standard card)    │
+└─────────────────────┴─────────────────────┘
+```
+- Wrapper: `grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch`
+- Below `md` breakpoint: single column, Daily Habits first
+
+### 12.5 Files Changed
+
+| File | Change |
+|------|--------|
+| `lib/weather.ts` | New — WMO code → emoji mapping |
+| `app/api/weather/route.ts` | New — Next.js GET handler (IP geo → Open-Meteo → `{ city, daily }`) |
+| `components/dashboard/WeatherStrip.tsx` | New — client component (loading skeleton, 7-day rows, header "Weather Forecast (City)") |
+| `app/dashboard/page.tsx` | Modified — Daily row becomes responsive two-column grid |
+
+---
+
+## 13. Linear Integration (Phase 6)
+
+### 13.1 Overview
+
+Reads Linear issues assigned to the user and displays them as a read-only sub-section inside the Business card, positioned between the active task list and the Completed section. Uses a personal API key — no OAuth required.
+
+### 13.2 Architecture
+
+- `LINEAR_PERSONAL_API_KEY` stored server-side in `.env`
+- `/api/linear` GET route POSTs to `https://api.linear.app/graphql` using the key as the `Authorization` header (no "Bearer" prefix for personal keys)
+- GraphQL query filters out completed/cancelled states server-side via `state: { type: { nin: ["completed", "cancelled"] } }`
+- Route returns `{ connected: boolean, issues: LinearIssue[] }` (always 200; key absent → `connected: false`)
+- `Cache-Control: private, max-age=300` (5-minute browser cache)
+
+### 13.3 `LinearIssue` Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Linear issue ID |
+| `title` | `string` | Issue title |
+| `priority` | `number` | 0=none 1=urgent 2=high 3=medium 4=low |
+| `url` | `string` | Direct link to issue in Linear |
+| `dueDate` | `string \| null` | "YYYY-MM-DD" or null |
+| `state` | `{ name, type }` | Workflow state |
+| `team` | `{ name }` | Team the issue belongs to |
+
+### 13.4 LinearSection Component
+
+Client component (`"use client"`). Self-fetches `/api/linear` on mount. Renders `null` while loading or when there are no issues. Once loaded with ≥1 issue, renders:
+
+- **Header:** Linear triangle logo icon + "LINEAR" label + count badge — mirrors CompletedSection pattern
+- **Divider:** `h-px bg-border`
+- **Issue rows:** each is an `<a target="_blank">` with:
+  - Priority dot: red (urgent/high), amber (medium), blue (low), hidden (none)
+  - Truncated title
+  - Team name badge + state name badge
+  - Due date (via `dateStringToTimestamp` + `formatDueDate` from `lib/utils`); overdue dates use `text-overdue`
+  - External link ↗ icon visible on hover
+
+### 13.5 Settings Page Integration
+
+The Linear `IntegrationCard` transitions from "Coming soon" to a three-state action:
+
+| State | Condition | UI |
+|-------|-----------|-----|
+| Coming soon | `comingSoon` prop | Disabled "Coming soon" button |
+| Connect | `connected === false` | Active "Connect" button (accent border) |
+| Connected | `connected === true` | Green dot + "Connected" badge; card border turns `border-green-200` |
+
+`app/settings/page.tsx` fetches `/api/linear` on mount to detect `connected` state and passes it to the Linear card.
+
+### 13.6 Files Changed
+
+| File | Change |
+|------|--------|
+| `lib/linear.ts` | New — `LinearIssue`, `LinearApiResponse` types + `LINEAR_ASSIGNED_QUERY` constant |
+| `app/api/linear/route.ts` | New — server-side GET handler |
+| `components/dashboard/LinearSection.tsx` | New — read-only issue sub-section component |
+| `components/dashboard/CategorySection.tsx` | Modified — `<LinearSection />` injected when `category === "business"` in both empty-state and active branches |
+| `components/settings/IntegrationCard.tsx` | Modified — added `connected?: boolean` prop with three-state button logic |
+| `app/settings/page.tsx` | Modified — fetches `/api/linear` and passes `connected` to Linear card; `comingSoon` removed from Linear card |
+| `.env` | Modified — placeholder `LINEAR_PERSONAL_API_KEY=` line added |
+
+### 13.7 Setup
+
+1. Go to Linear → Settings → API → Personal API keys → Create key
+2. Add to `.env`: `LINEAR_PERSONAL_API_KEY=lin_api_xxxxxxxxxxxxxxxxxxxxxxxx`
+3. Restart dev server — Business section shows assigned issues; Settings shows "Connected"
+
+---
+
 ## 7. Verification
 
 1. **Schema:** `npx instant-cli push schema --yes` succeeds without errors
