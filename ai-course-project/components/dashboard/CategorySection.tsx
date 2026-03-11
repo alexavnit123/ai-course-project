@@ -10,9 +10,11 @@ import { TaskWithCompletions } from "./TaskCard";
 
 interface CategorySectionProps {
   category: Category;
+  variant?: "daily" | "standard";
   tasks: TaskWithCompletions[];
   today: string;
   userId: string;
+  progressLabel?: string; // e.g. "3/5" shown only on daily variant
 }
 
 const categoryIcons: Record<Category, React.ReactNode> = {
@@ -40,32 +42,22 @@ const categoryIcons: Record<Category, React.ReactNode> = {
   ),
   business: (
     <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-      <rect
-        x="1.5"
-        y="5.5"
-        width="12"
-        height="8"
-        rx="1"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      />
-      <path
-        d="M5 5.5V4a2 2 0 014 0v1.5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
+      <rect x="1.5" y="5.5" width="12" height="8" rx="1" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M5 5.5V4a2 2 0 014 0v1.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   ),
 };
 
 export default function CategorySection({
   category,
+  variant = "standard",
   tasks,
   today,
   userId,
+  progressLabel,
 }: CategorySectionProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const isDaily = variant === "daily";
 
   const { activeTasks, completedTasks, maxSortOrder } = useMemo(() => {
     const isTaskCompleted = (t: TaskWithCompletions) =>
@@ -97,14 +89,23 @@ export default function CategorySection({
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Category header */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-accent">{categoryIcons[category]}</span>
+          <span className={isDaily ? "text-accent" : "text-accent"}>
+            {categoryIcons[category]}
+          </span>
           <h2 className="text-xs font-bold uppercase tracking-widest text-foreground">
-            {CATEGORY_LABELS[category]}
+            {isDaily ? "Daily Habits" : CATEGORY_LABELS[category]}
           </h2>
-          {overdueCount > 0 && (
+          {/* Daily progress pill */}
+          {isDaily && progressLabel && (
+            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-accent text-white">
+              {progressLabel}
+            </span>
+          )}
+          {/* Overdue badge (non-daily only) */}
+          {!isDaily && overdueCount > 0 && (
             <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-overdue text-white text-[10px] font-bold">
               {overdueCount}
             </span>
@@ -113,53 +114,54 @@ export default function CategorySection({
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="w-7 h-7 flex items-center justify-center rounded-xl border-2 border-border text-muted-foreground hover:border-accent hover:text-accent hover:bg-accent-light transition-all"
+          className={
+            isDaily
+              ? "w-7 h-7 flex items-center justify-center rounded-xl border-2 border-accent/40 text-accent hover:border-accent hover:bg-accent/10 transition-all"
+              : "w-7 h-7 flex items-center justify-center rounded-xl border-2 border-border text-muted-foreground hover:border-accent hover:text-accent hover:bg-accent-light transition-all"
+          }
           aria-label={`Add ${category} task`}
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path
-              d="M6 1v10M1 6h10"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
+            <path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
         </button>
       </div>
 
       {/* Divider */}
-      <div className="h-0.5 bg-border rounded-full" />
+      <div className={`h-0.5 rounded-full ${isDaily ? "bg-accent/20" : "bg-border"}`} />
 
       {/* Task list */}
       {activeTasks.length === 0 && completedTasks.length === 0 ? (
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex flex-col items-center gap-2 py-8 rounded-xl border-2 border-dashed border-border text-muted-foreground hover:border-accent/50 hover:text-accent hover:bg-accent-light/30 transition-all group"
+          className={
+            isDaily
+              ? "flex items-center gap-3 py-4 px-4 rounded-xl border-2 border-dashed border-accent/30 text-accent/60 hover:border-accent/60 hover:text-accent hover:bg-accent/5 transition-all group"
+              : "flex flex-col items-center gap-2 py-8 rounded-xl border-2 border-dashed border-border text-muted-foreground hover:border-accent/50 hover:text-accent hover:bg-accent-light/30 transition-all group"
+          }
         >
           <svg
-            width="20"
-            height="20"
-            viewBox="0 0 20 20"
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
             fill="none"
-            className="group-hover:scale-110 transition-transform"
+            className="group-hover:scale-110 transition-transform shrink-0"
           >
-            <path
-              d="M10 4v12M4 10h12"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-            />
+            <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
-          <span className="text-xs font-medium">Add a task</span>
+          <span className="text-xs font-medium">
+            {isDaily ? "Add a daily habit" : "Add a task"}
+          </span>
         </button>
       ) : (
         <>
-          <TaskList tasks={activeTasks} today={today} userId={userId} />
-          <CompletedSection
-            tasks={completedTasks}
+          <TaskList
+            tasks={activeTasks}
             today={today}
             userId={userId}
+            dailyVariant={isDaily}
           />
+          <CompletedSection tasks={completedTasks} today={today} userId={userId} dailyVariant={isDaily} />
         </>
       )}
 

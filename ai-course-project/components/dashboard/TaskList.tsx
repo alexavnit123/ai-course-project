@@ -23,9 +23,10 @@ interface TaskListProps {
   tasks: TaskWithCompletions[];
   today: string;
   userId: string;
+  dailyVariant?: boolean;
 }
 
-export default function TaskList({ tasks, today, userId }: TaskListProps) {
+export default function TaskList({ tasks, today, userId, dailyVariant }: TaskListProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
@@ -86,7 +87,7 @@ export default function TaskList({ tasks, today, userId }: TaskListProps) {
       >
         <div className="flex flex-col gap-1.5">
           {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} today={today} userId={userId} />
+            <TaskCard key={task.id} task={task} today={today} userId={userId} dailyVariant={dailyVariant} />
           ))}
         </div>
       </SortableContext>
@@ -99,6 +100,7 @@ export default function TaskList({ tasks, today, userId }: TaskListProps) {
               today={today}
               userId={userId}
               isOverlay
+              dailyVariant={dailyVariant}
             />
           </div>
         ) : null}

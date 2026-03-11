@@ -25,6 +25,7 @@ interface TaskCardProps {
   today: string;
   userId: string;
   isOverlay?: boolean;
+  dailyVariant?: boolean;
 }
 
 function TaskCheckbox({
@@ -38,13 +39,16 @@ function TaskCheckbox({
 }) {
   return (
     <button
-      onClick={(e) => { e.stopPropagation(); onToggle(); }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle();
+      }}
       className={cn(
         "w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-150 shrink-0",
         checked
           ? "bg-accent border-accent"
           : isDaily
-          ? "border-accent/40 hover:border-accent bg-accent-light/30"
+          ? "border-accent/50 hover:border-accent bg-white/40"
           : "border-border hover:border-accent bg-transparent"
       )}
       aria-label={checked ? "Mark incomplete" : "Mark complete"}
@@ -72,6 +76,7 @@ export function TaskCardContent({
   dragListeners,
   dragAttributes,
   isDragging = false,
+  dailyVariant = false,
 }: TaskCardProps & {
   dragListeners?: SyntheticListenerMap;
   dragAttributes?: DraggableAttributes;
@@ -108,12 +113,13 @@ export function TaskCardContent({
       <div
         onClick={() => !isDragging && setIsDetailOpen(true)}
         className={cn(
-          "group flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 border-border bg-card",
-          "shadow-[3px_3px_0px_0px_rgba(0,0,0,0.04)]",
-          "hover:border-accent/40 hover:shadow-[3px_3px_0px_0px_rgba(108,92,231,0.08)]",
-          "transition-all duration-150 cursor-pointer",
-          isDragging && "opacity-40",
-          overdue && !isCompleted && "border-overdue/30 bg-overdue-light/20"
+          "group flex items-center gap-3 rounded-xl border-2 transition-all duration-150 cursor-pointer",
+          dailyVariant
+            ? "px-3 py-2 bg-white/50 border-accent/20 hover:bg-white/70 hover:border-accent/50 shadow-[2px_2px_0px_0px_rgba(108,92,231,0.08)]"
+            : "px-3 py-2.5 bg-card border-border hover:border-accent/40 shadow-[3px_3px_0px_0px_rgba(0,0,0,0.04)] hover:shadow-[3px_3px_0px_0px_rgba(108,92,231,0.08)]",
+          dailyVariant && isCompleted && "opacity-60",
+          !dailyVariant && overdue && !isCompleted && "border-overdue/30 bg-overdue-light/20",
+          isDragging && "opacity-40"
         )}
       >
         {/* Drag handle */}
@@ -121,7 +127,12 @@ export function TaskCardContent({
           {...dragListeners}
           {...dragAttributes}
           onClick={(e) => e.stopPropagation()}
-          className="text-border group-hover:text-muted-foreground hover:!text-accent transition-colors touch-none cursor-grab active:cursor-grabbing shrink-0"
+          className={cn(
+            "transition-colors touch-none cursor-grab active:cursor-grabbing shrink-0",
+            dailyVariant
+              ? "text-accent/20 group-hover:text-accent/50 hover:!text-accent"
+              : "text-border group-hover:text-muted-foreground hover:!text-accent"
+          )}
           aria-label="Drag to reorder"
           tabIndex={-1}
         >
@@ -146,30 +157,34 @@ export function TaskCardContent({
         <div className="flex-1 min-w-0">
           <span
             className={cn(
-              "block text-sm text-foreground truncate",
-              isCompleted && "line-through text-muted-foreground"
+              "block text-sm truncate",
+              isCompleted
+                ? "line-through text-muted-foreground"
+                : dailyVariant
+                ? "text-foreground font-medium"
+                : "text-foreground"
             )}
           >
             {task.title}
           </span>
-          {task.description && (
+          {task.description && !dailyVariant && (
             <span className="block text-xs text-muted-foreground truncate mt-0.5">
               {task.description}
             </span>
           )}
         </div>
 
-        {/* Badges */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          {overdue && !isCompleted && (
-            <Badge variant="overdue">Overdue</Badge>
-          )}
-          {task.dueDate && (
-            <Badge variant={overdue && !isCompleted ? "overdue" : "muted"}>
-              {formatDueDate(task.dueDate)}
-            </Badge>
-          )}
-        </div>
+        {/* Badges — omit due dates on daily variant (daily tasks don't use them) */}
+        {!dailyVariant && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            {overdue && !isCompleted && <Badge variant="overdue">Overdue</Badge>}
+            {task.dueDate && (
+              <Badge variant={overdue && !isCompleted ? "overdue" : "muted"}>
+                {formatDueDate(task.dueDate)}
+              </Badge>
+            )}
+          </div>
+        )}
 
         {/* Context menu */}
         <div
@@ -199,6 +214,7 @@ export default function TaskCard({
   today,
   userId,
   isOverlay,
+  dailyVariant,
 }: TaskCardProps) {
   const {
     attributes,
@@ -215,7 +231,14 @@ export default function TaskCard({
   };
 
   if (isOverlay) {
-    return <TaskCardContent task={task} today={today} userId={userId} />;
+    return (
+      <TaskCardContent
+        task={task}
+        today={today}
+        userId={userId}
+        dailyVariant={dailyVariant}
+      />
+    );
   }
 
   return (
@@ -227,6 +250,7 @@ export default function TaskCard({
         dragListeners={listeners}
         dragAttributes={attributes}
         isDragging={isDragging}
+        dailyVariant={dailyVariant}
       />
     </div>
   );

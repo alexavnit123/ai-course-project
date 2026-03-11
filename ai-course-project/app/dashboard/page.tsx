@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { db } from "@/lib/db";
 import { getTodayString } from "@/lib/utils";
-import { CATEGORIES, Category } from "@/lib/constants";
+import { Category } from "@/lib/constants";
 import CategorySection from "@/components/dashboard/CategorySection";
 
 export default function DashboardPage() {
@@ -44,31 +44,26 @@ export default function DashboardPage() {
   if (error) {
     return (
       <div className="flex items-center justify-center py-24">
-        <p className="text-overdue text-sm">
-          Error loading tasks: {error.message}
-        </p>
+        <p className="text-overdue text-sm">Error loading tasks: {error.message}</p>
       </div>
     );
   }
 
-  // Summary counts
   const totalActive = Object.values(tasksByCategory).reduce(
     (sum, tasks) =>
-      sum +
-      tasks.filter((t) =>
-        t.isDaily ? t.dailyCompletions.length === 0 : !t.completed
-      ).length,
+      sum + tasks.filter((t) => (t.isDaily ? t.dailyCompletions.length === 0 : !t.completed)).length,
     0
   );
 
+  const dailyTotal = tasksByCategory.daily.length;
+  const dailyDone = tasksByCategory.daily.filter((t) => t.dailyCompletions.length > 0).length;
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       {/* Page header */}
       <div className="flex items-baseline justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            {getTodayGreeting()}
-          </h1>
+          <h1 className="text-2xl font-bold text-foreground">{getTodayGreeting()}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {new Date().toLocaleDateString("en-US", {
               weekday: "long",
@@ -78,7 +73,8 @@ export default function DashboardPage() {
             {totalActive > 0 && (
               <span>
                 {" "}
-                · <span className="text-accent font-medium">{totalActive}</span>{" "}
+                ·{" "}
+                <span className="text-accent font-medium">{totalActive}</span>{" "}
                 task{totalActive !== 1 ? "s" : ""} remaining
               </span>
             )}
@@ -86,21 +82,38 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 3-column grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {CATEGORIES.map((category) => (
-          <div
-            key={category}
-            className="bg-card rounded-2xl border-2 border-border p-5 shadow-[4px_4px_0px_0px_rgba(108,92,231,0.06)]"
-          >
-            <CategorySection
-              category={category}
-              tasks={tasksByCategory[category]}
-              today={today}
-              userId={user.id}
-            />
-          </div>
-        ))}
+      {/* ── DAILY — full-width accent strip ── */}
+      <div className="rounded-2xl border-2 border-accent/25 bg-accent-light p-5 shadow-[4px_4px_0px_0px_rgba(108,92,231,0.12)]">
+        <CategorySection
+          category="daily"
+          variant="daily"
+          tasks={tasksByCategory.daily}
+          today={today}
+          userId={user.id}
+          progressLabel={dailyTotal > 0 ? `${dailyDone}/${dailyTotal}` : undefined}
+        />
+      </div>
+
+      {/* ── PERSONAL — full-width card ── */}
+      <div className="rounded-2xl border-2 border-border bg-card p-5 shadow-[4px_4px_0px_0px_rgba(108,92,231,0.06)]">
+        <CategorySection
+          category="personal"
+          variant="standard"
+          tasks={tasksByCategory.personal}
+          today={today}
+          userId={user.id}
+        />
+      </div>
+
+      {/* ── BUSINESS — full-width card ── */}
+      <div className="rounded-2xl border-2 border-border bg-card p-5 shadow-[4px_4px_0px_0px_rgba(108,92,231,0.06)]">
+        <CategorySection
+          category="business"
+          variant="standard"
+          tasks={tasksByCategory.business}
+          today={today}
+          userId={user.id}
+        />
       </div>
     </div>
   );

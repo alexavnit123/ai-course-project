@@ -4,12 +4,14 @@ interface CompletedSectionProps {
   tasks: TaskWithCompletions[];
   today: string;
   userId: string;
+  dailyVariant?: boolean;
 }
 
 export default function CompletedSection({
   tasks,
   today,
   userId,
+  dailyVariant,
 }: CompletedSectionProps) {
   if (tasks.length === 0) return null;
 
@@ -36,6 +38,7 @@ export default function CompletedSection({
             task={task}
             today={today}
             userId={userId}
+            dailyVariant={dailyVariant}
           />
         ))}
       </div>
