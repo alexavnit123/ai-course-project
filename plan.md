@@ -203,6 +203,64 @@ Removed the collapse/expand toggle from `CompletedSection.tsx`.
 
 ---
 
+## 10. Phase 3 — Dashboard Layout Redesign
+
+Replaced the 3-equal-column grid with a full-width stacked layout ("Option A"). Goals: (1) Daily tasks get a distinct visual identity, (2) Personal/Business tasks get maximum horizontal width so titles never truncate.
+
+### 10.1 Layout Structure
+
+`app/dashboard/page.tsx` changed from a CSS grid to a vertical `flex-col gap-5` stack:
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  ☀  DAILY HABITS           [purple accent bg strip]      │
+│  ○ Morning workout                                        │
+│  ○ Read 20 mins                                           │
+└──────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│  👤  PERSONAL                                        [+] │
+│  ○  Book dentist appointment                    Today    │
+└──────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│  💼  BUSINESS                                        [+] │
+│  ○  Finalise Q2 OKR deck for Thursday all-hands  Overdue │
+└──────────────────────────────────────────────────────────┘
+```
+
+- **Daily card:** `bg-accent-light` with `border-accent/25` and purple shadow. Heading reads "Daily Habits". Progress pill (e.g. "3/5") shown next to heading.
+- **Personal / Business cards:** `bg-card` with `border-border` and subtle shadow. Full viewport width — long titles are never truncated.
+
+### 10.2 Variant Prop System
+
+`CategorySection.tsx` accepts `variant?: "daily" | "standard"` and `progressLabel?: string`:
+
+- `variant="daily"` → accent-tinted divider, "Daily Habits" heading, progress pill, daily-style empty state
+- `variant="standard"` → default border divider, category label from `CATEGORY_LABELS`
+
+### 10.3 dailyVariant Threading
+
+A `dailyVariant?: boolean` prop is threaded through the component tree so task rows render differently inside the Daily card:
+
+| Component | Daily variant behaviour |
+|---|---|
+| `TaskCard` / `TaskCardContent` | `bg-white/50 border-accent/20`, tighter `py-2` padding, `font-medium` title, accent-tinted drag handle, no due-date badges, completed items `opacity-60` |
+| `TaskList` | Passes `dailyVariant` to each `TaskCard` and to `DragOverlay` |
+| `CompletedSection` | Passes `dailyVariant` to each `TaskCardContent` |
+
+### 10.4 Files Changed
+
+| File | Change |
+|---|---|
+| `app/dashboard/page.tsx` | Full-width stack; Daily gets accent card, Personal/Business get standard cards |
+| `components/dashboard/CategorySection.tsx` | `variant` + `progressLabel` props; conditional heading/styles |
+| `components/dashboard/TaskCard.tsx` | `dailyVariant` prop with distinct row styling |
+| `components/dashboard/TaskList.tsx` | `dailyVariant` prop threading |
+| `components/dashboard/CompletedSection.tsx` | `dailyVariant` prop threading |
+
+No schema or InstantDB changes required.
+
+---
+
 ## 7. Verification
 
 1. **Schema:** `npx instant-cli push schema --yes` succeeds without errors

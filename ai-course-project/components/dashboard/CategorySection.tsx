@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Category, CATEGORY_LABELS } from "@/lib/constants";
-import { isOverdue } from "@/lib/utils";
+import { isOverdue, cn } from "@/lib/utils";
 import TaskList from "./TaskList";
 import CompletedSection from "./CompletedSection";
 import CreateTaskModal from "@/components/tasks/CreateTaskModal";
@@ -90,8 +90,8 @@ export default function CategorySection({
   return (
     <div className="flex flex-col gap-3">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 shrink-0">
           <span className={isDaily ? "text-accent" : "text-accent"}>
             {categoryIcons[category]}
           </span>
@@ -112,13 +112,34 @@ export default function CategorySection({
           )}
         </div>
 
+        {/* Progress bar */}
+        {tasks.length > 0 && (
+          <div className={cn(
+            "flex-1 rounded-full overflow-hidden self-center",
+            isDaily ? "h-1.5 bg-accent/15" : "h-1 bg-muted"
+          )}>
+            <div
+              className={cn(
+                "h-full rounded-full transition-all duration-500",
+                completedTasks.length === tasks.length
+                  ? "bg-success"
+                  : isDaily
+                  ? "bg-accent"
+                  : "bg-accent/70"
+              )}
+              style={{ width: `${(completedTasks.length / tasks.length) * 100}%` }}
+            />
+          </div>
+        )}
+
         <button
           onClick={() => setIsModalOpen(true)}
-          className={
+          className={cn(
+            "shrink-0 w-7 h-7 flex items-center justify-center rounded-xl border-2 transition-all",
             isDaily
-              ? "w-7 h-7 flex items-center justify-center rounded-xl border-2 border-accent/40 text-accent hover:border-accent hover:bg-accent/10 transition-all"
-              : "w-7 h-7 flex items-center justify-center rounded-xl border-2 border-border text-muted-foreground hover:border-accent hover:text-accent hover:bg-accent-light transition-all"
-          }
+              ? "border-accent/40 text-accent hover:border-accent hover:bg-accent/10"
+              : "border-border text-muted-foreground hover:border-accent hover:text-accent hover:bg-accent-light"
+          )}
           aria-label={`Add ${category} task`}
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
