@@ -58,27 +58,29 @@ export default function WeatherStrip() {
   const { city, daily } = state.data;
 
   return (
-    <div className="flex flex-col gap-1 h-full">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-        {city}
+    <div className="flex flex-col h-full">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+        Weather Forecast ({city})
       </p>
-      {daily.map((day) => (
-        <div
-          key={day.date}
-          className="flex items-center justify-between text-sm"
-        >
-          <span className="w-12 text-muted-foreground text-xs">
-            {getDayLabel(day.date, today)}
-          </span>
-          <span className="text-base leading-none">
-            {getWeatherEmoji(day.weatherCode)}
-          </span>
-          <span className="tabular-nums">
-            <span className="font-semibold text-foreground">{day.tempMax}°</span>
-            <span className="text-muted-foreground"> / {day.tempMin}°</span>
-          </span>
-        </div>
-      ))}
+      <div className="flex flex-col flex-1 justify-between">
+        {daily.map((day) => (
+          <div
+            key={day.date}
+            className="flex items-center justify-between flex-1"
+          >
+            <span className="w-12 text-muted-foreground text-xs">
+              {getDayLabel(day.date, today)}
+            </span>
+            <span className="text-3xl leading-none">
+              {getWeatherEmoji(day.weatherCode)}
+            </span>
+            <span className="tabular-nums text-sm">
+              <span className="font-semibold text-foreground">{day.tempMax}°</span>
+              <span className="text-muted-foreground"> / {day.tempMin}°</span>
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
