@@ -115,7 +115,7 @@ export function TaskCardContent({
         className={cn(
           "group flex items-center gap-3 rounded-xl border-2 transition-all duration-150 cursor-pointer",
           dailyVariant
-            ? "px-3 py-2 bg-white/50 border-accent/20 hover:bg-white/70 hover:border-accent/50 shadow-[2px_2px_0px_0px_rgba(108,92,231,0.08)]"
+            ? "px-3 py-2 bg-card/60 border-accent/20 hover:bg-card/80 hover:border-accent/50 shadow-[2px_2px_0px_0px_rgba(108,92,231,0.08)]"
             : "px-3 py-2.5 bg-card border-border hover:border-accent/40 shadow-[3px_3px_0px_0px_rgba(0,0,0,0.04)] hover:shadow-[3px_3px_0px_0px_rgba(108,92,231,0.08)]",
           dailyVariant && isCompleted && "opacity-60",
           !dailyVariant && overdue && !isCompleted && "border-overdue/30 bg-overdue-light/20",
@@ -145,6 +145,21 @@ export function TaskCardContent({
             <circle cx="9.5" cy="10.5" r="1" fill="currentColor" />
           </svg>
         </button>
+
+        {/* Priority dot */}
+        {task.priority && (
+          <span
+            className={cn(
+              "w-2 h-2 rounded-full shrink-0",
+              task.priority === 1 ? "bg-red-500" :
+              task.priority === 2 ? "bg-amber-400" : "bg-blue-400"
+            )}
+            aria-label={
+              task.priority === 1 ? "High priority" :
+              task.priority === 2 ? "Medium priority" : "Low priority"
+            }
+          />
+        )}
 
         {/* Checkbox */}
         <TaskCheckbox

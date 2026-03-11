@@ -11,6 +11,7 @@ export default function DashboardHeader() {
 
   const navItems = [
     { href: "/dashboard", label: "Tasks" },
+    { href: "/stats", label: "Stats" },
     { href: "/settings", label: "Settings" },
   ];
 

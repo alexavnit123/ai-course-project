@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Category, CATEGORY_LABELS } from "@/lib/constants";
-import { isOverdue } from "@/lib/utils";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { Category, CATEGORY_LABELS, SortMode } from "@/lib/constants";
+import { isOverdue, cn } from "@/lib/utils";
 import TaskList from "./TaskList";
 import CompletedSection from "./CompletedSection";
 import CreateTaskModal from "@/components/tasks/CreateTaskModal";
@@ -57,7 +57,22 @@ export default function CategorySection({
   progressLabel,
 }: CategorySectionProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [sortMode, setSortMode] = useState<SortMode>("manual");
+  const [sortOpen, setSortOpen] = useState(false);
+  const sortRef = useRef<HTMLDivElement>(null);
   const isDaily = variant === "daily";
+
+  // Close sort dropdown on click-outside
+  useEffect(() => {
+    if (!sortOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
+        setSortOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [sortOpen]);
 
   const { activeTasks, completedTasks, maxSortOrder } = useMemo(() => {
     const isTaskCompleted = (t: TaskWithCompletions) =>
@@ -66,6 +81,19 @@ export default function CategorySection({
     const active = tasks
       .filter((t) => !isTaskCompleted(t))
       .sort((a, b) => {
+        if (sortMode === "priority") {
+          const pa = a.priority ?? 99;
+          const pb = b.priority ?? 99;
+          if (pa !== pb) return pa - pb;
+          return a.sortOrder - b.sortOrder;
+        }
+        if (sortMode === "dueDate") {
+          const da = a.dueDate ?? Infinity;
+          const db = b.dueDate ?? Infinity;
+          if (da !== db) return da - db;
+          return a.sortOrder - b.sortOrder;
+        }
+        // manual: overdue first, then sortOrder
         const aOverdue = isOverdue(a.dueDate, a.completed, a.isDaily);
         const bOverdue = isOverdue(b.dueDate, b.completed, b.isDaily);
         if (aOverdue && !bOverdue) return -1;
@@ -81,7 +109,7 @@ export default function CategorySection({
       tasks.length > 0 ? Math.max(...tasks.map((t) => t.sortOrder)) : 0;
 
     return { activeTasks: active, completedTasks: completed, maxSortOrder: maxOrder };
-  }, [tasks]);
+  }, [tasks, sortMode]);
 
   const overdueCount = activeTasks.filter((t) =>
     isOverdue(t.dueDate, t.completed, t.isDaily)
@@ -90,8 +118,8 @@ export default function CategorySection({
   return (
     <div className="flex flex-col gap-3">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 shrink-0">
           <span className={isDaily ? "text-accent" : "text-accent"}>
             {categoryIcons[category]}
           </span>
@@ -112,13 +140,88 @@ export default function CategorySection({
           )}
         </div>
 
+        {/* Progress bar */}
+        {tasks.length > 0 && (
+          <div className={cn(
+            "flex-1 rounded-full overflow-hidden self-center",
+            isDaily ? "h-1.5 bg-accent/15" : "h-1 bg-muted"
+          )}>
+            <div
+              className={cn(
+                "h-full rounded-full transition-all duration-500",
+                completedTasks.length === tasks.length
+                  ? "bg-success"
+                  : isDaily
+                  ? "bg-accent"
+                  : "bg-accent/70"
+              )}
+              style={{ width: `${(completedTasks.length / tasks.length) * 100}%` }}
+            />
+          </div>
+        )}
+
+        {/* Sort dropdown */}
+        <div className="relative shrink-0" ref={sortRef}>
+          <button
+            onClick={() => setSortOpen((v) => !v)}
+            className={cn(
+              "w-7 h-7 flex items-center justify-center rounded-xl border-2 transition-all",
+              sortMode !== "manual"
+                ? "border-accent text-accent bg-accent-light"
+                : isDaily
+                ? "border-accent/40 text-accent/60 hover:border-accent hover:text-accent"
+                : "border-border text-muted-foreground hover:border-accent hover:text-accent hover:bg-accent-light"
+            )}
+            aria-label="Sort tasks"
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M1 3h10M3 6h6M5 9h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+
+          {sortOpen && (
+            <div className="absolute right-0 top-9 z-20 bg-card border-2 border-border rounded-xl shadow-[4px_4px_0px_0px_rgba(108,92,231,0.1)] min-w-[140px] overflow-hidden">
+              {(
+                [
+                  { mode: "manual" as SortMode, label: "Manual" },
+                  { mode: "priority" as SortMode, label: "Priority" },
+                  { mode: "dueDate" as SortMode, label: "Due Date" },
+                ] as const
+              ).map(({ mode, label }) => (
+                <button
+                  key={mode}
+                  onClick={() => {
+                    setSortMode(mode);
+                    setSortOpen(false);
+                  }}
+                  className={cn(
+                    "w-full flex items-center gap-2 px-3 py-2 text-sm text-left transition-colors",
+                    sortMode === mode
+                      ? "text-accent bg-accent-light font-semibold"
+                      : "text-foreground hover:bg-muted"
+                  )}
+                >
+                  {sortMode === mode && (
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="shrink-0">
+                      <path d="M1.5 5l2.5 2.5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                  {sortMode !== mode && <span className="w-2.5" />}
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         <button
           onClick={() => setIsModalOpen(true)}
-          className={
+          className={cn(
+            "shrink-0 w-7 h-7 flex items-center justify-center rounded-xl border-2 transition-all",
             isDaily
-              ? "w-7 h-7 flex items-center justify-center rounded-xl border-2 border-accent/40 text-accent hover:border-accent hover:bg-accent/10 transition-all"
-              : "w-7 h-7 flex items-center justify-center rounded-xl border-2 border-border text-muted-foreground hover:border-accent hover:text-accent hover:bg-accent-light transition-all"
-          }
+              ? "border-accent/40 text-accent hover:border-accent hover:bg-accent/10"
+              : "border-border text-muted-foreground hover:border-accent hover:text-accent hover:bg-accent-light"
+          )}
           aria-label={`Add ${category} task`}
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">

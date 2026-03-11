@@ -203,6 +203,127 @@ Removed the collapse/expand toggle from `CompletedSection.tsx`.
 
 ---
 
+## 10. Phase 3 — Dashboard Layout Redesign
+
+Replaced the 3-equal-column grid with a full-width stacked layout ("Option A"). Goals: (1) Daily tasks get a distinct visual identity, (2) Personal/Business tasks get maximum horizontal width so titles never truncate.
+
+### 10.1 Layout Structure
+
+`app/dashboard/page.tsx` changed from a CSS grid to a vertical `flex-col gap-5` stack:
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  ☀  DAILY HABITS           [purple accent bg strip]      │
+│  ○ Morning workout                                        │
+│  ○ Read 20 mins                                           │
+└──────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│  👤  PERSONAL                                        [+] │
+│  ○  Book dentist appointment                    Today    │
+└──────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│  💼  BUSINESS                                        [+] │
+│  ○  Finalise Q2 OKR deck for Thursday all-hands  Overdue │
+└──────────────────────────────────────────────────────────┘
+```
+
+- **Daily card:** `bg-accent-light` with `border-accent/25` and purple shadow. Heading reads "Daily Habits". Progress pill (e.g. "3/5") shown next to heading.
+- **Personal / Business cards:** `bg-card` with `border-border` and subtle shadow. Full viewport width — long titles are never truncated.
+
+### 10.2 Variant Prop System
+
+`CategorySection.tsx` accepts `variant?: "daily" | "standard"` and `progressLabel?: string`:
+
+- `variant="daily"` → accent-tinted divider, "Daily Habits" heading, progress pill, daily-style empty state
+- `variant="standard"` → default border divider, category label from `CATEGORY_LABELS`
+
+### 10.3 dailyVariant Threading
+
+A `dailyVariant?: boolean` prop is threaded through the component tree so task rows render differently inside the Daily card:
+
+| Component | Daily variant behaviour |
+|---|---|
+| `TaskCard` / `TaskCardContent` | `bg-white/50 border-accent/20`, tighter `py-2` padding, `font-medium` title, accent-tinted drag handle, no due-date badges, completed items `opacity-60` |
+| `TaskList` | Passes `dailyVariant` to each `TaskCard` and to `DragOverlay` |
+| `CompletedSection` | Passes `dailyVariant` to each `TaskCardContent` |
+
+### 10.4 Files Changed
+
+| File | Change |
+|---|---|
+| `app/dashboard/page.tsx` | Full-width stack; Daily gets accent card, Personal/Business get standard cards |
+| `components/dashboard/CategorySection.tsx` | `variant` + `progressLabel` props; conditional heading/styles |
+| `components/dashboard/TaskCard.tsx` | `dailyVariant` prop with distinct row styling |
+| `components/dashboard/TaskList.tsx` | `dailyVariant` prop threading |
+| `components/dashboard/CompletedSection.tsx` | `dailyVariant` prop threading |
+
+No schema or InstantDB changes required.
+
+---
+
+## 11. Task Priority + Per-Section Sort (Phase 4)
+
+### 11.1 Overview
+
+Adds an optional priority level to each task and lets users sort each section independently by manual order, priority, or due date.
+
+### 11.2 Schema Change
+
+Added to the `tasks` entity in `instant.schema.ts`:
+
+```typescript
+priority: i.number().indexed().optional(),
+```
+
+Priority encoding: `1` = High, `2` = Medium, `3` = Low, `undefined` = None. Integer values make ascending sort work naturally (High surfaces first).
+
+Schema pushed via `npx instant-cli push schema --yes`.
+
+### 11.3 Constants
+
+Added to `lib/constants.ts`:
+
+```typescript
+export const PRIORITY_OPTIONS = [
+  { value: 1, label: "High",   dot: "bg-red-500"   },
+  { value: 2, label: "Medium", dot: "bg-amber-400" },
+  { value: 3, label: "Low",    dot: "bg-blue-400"  },
+] as const;
+
+export type Priority = 1 | 2 | 3;
+export type SortMode = "manual" | "priority" | "dueDate";
+```
+
+### 11.4 Component Changes
+
+| Component | Change |
+|---|---|
+| `TaskCard` | Coloured dot (`w-2 h-2 rounded-full`) between drag handle and checkbox; red/amber/blue for High/Medium/Low; hidden when `priority` is undefined |
+| `CreateTaskModal` | Priority picker (None / High / Medium / Low pill buttons with coloured dots) above the category picker; persisted in `db.tx.tasks[id].create({ priority })` |
+| `TaskDetailModal` | Same priority picker pre-populated from `task.priority`; saved in `db.tx.tasks[id].update({ priority })` |
+| `CategorySection` | `sortMode` state (default `"manual"`), `sortOpen` dropdown state, click-outside `useEffect`; sort icon button left of [+]; active sort tints icon accent |
+
+### 11.5 Sort Logic (CategorySection `useMemo`)
+
+| Sort mode | Behaviour |
+|---|---|
+| `manual` | Overdue tasks first, then ascending `sortOrder` (original behaviour) |
+| `priority` | Ascending `priority` (1→2→3→undefined treated as 99); tiebreak by `sortOrder` |
+| `dueDate` | Ascending `dueDate`; tasks with no due date sink to bottom (`Infinity`); tiebreak by `sortOrder` |
+
+### 11.6 Files Changed
+
+| File | Change |
+|---|---|
+| `instant.schema.ts` | Added `priority` field |
+| `lib/constants.ts` | Added `PRIORITY_OPTIONS`, `Priority`, `SortMode` |
+| `components/dashboard/TaskCard.tsx` | Priority dot indicator |
+| `components/tasks/CreateTaskModal.tsx` | Priority picker UI + persistence |
+| `components/tasks/TaskDetailModal.tsx` | Priority picker UI + persistence |
+| `components/dashboard/CategorySection.tsx` | Sort state, dropdown UI, updated sort logic |
+
+---
+
 ## 7. Verification
 
 1. **Schema:** `npx instant-cli push schema --yes` succeeds without errors
