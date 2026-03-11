@@ -1,0 +1,114 @@
+"use client";
+
+import { useMemo } from "react";
+import { db } from "@/lib/db";
+import { getTodayString } from "@/lib/utils";
+import { CATEGORIES, Category } from "@/lib/constants";
+import CategorySection from "@/components/dashboard/CategorySection";
+
+export default function DashboardPage() {
+  const today = getTodayString();
+  const { user } = db.useAuth();
+
+  const { data, isLoading, error } = db.useQuery({
+    tasks: {
+      dailyCompletions: { $: { where: { dateString: today } } },
+    },
+  });
+
+  const tasksByCategory = useMemo(() => {
+    type TaskArr = NonNullable<typeof data>["tasks"];
+    const result: Record<Category, TaskArr> = {
+      daily: [],
+      personal: [],
+      business: [],
+    };
+    if (!data?.tasks) return result;
+    for (const task of data.tasks) {
+      const cat = task.category as Category;
+      if (result[cat]) result[cat].push(task);
+    }
+    return result;
+  }, [data?.tasks]);
+
+  if (!user) return null;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <div className="w-8 h-8 border-4 border-accent/30 border-t-accent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <p className="text-overdue text-sm">
+          Error loading tasks: {error.message}
+        </p>
+      </div>
+    );
+  }
+
+  // Summary counts
+  const totalActive = Object.values(tasksByCategory).reduce(
+    (sum, tasks) =>
+      sum +
+      tasks.filter((t) =>
+        t.isDaily ? t.dailyCompletions.length === 0 : !t.completed
+      ).length,
+    0
+  );
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Page header */}
+      <div className="flex items-baseline justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {getTodayGreeting()}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {new Date().toLocaleDateString("en-US", {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+            })}
+            {totalActive > 0 && (
+              <span>
+                {" "}
+                · <span className="text-accent font-medium">{totalActive}</span>{" "}
+                task{totalActive !== 1 ? "s" : ""} remaining
+              </span>
+            )}
+          </p>
+        </div>
+      </div>
+
+      {/* 3-column grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {CATEGORIES.map((category) => (
+          <div
+            key={category}
+            className="bg-card rounded-2xl border-2 border-border p-5 shadow-[4px_4px_0px_0px_rgba(108,92,231,0.06)]"
+          >
+            <CategorySection
+              category={category}
+              tasks={tasksByCategory[category]}
+              today={today}
+              userId={user.id}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function getTodayGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}

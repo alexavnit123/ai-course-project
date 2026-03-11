@@ -19,6 +19,22 @@ const _schema = i.schema({
       imageURL: i.string().optional(),
       type: i.string().optional(),
     }),
+    tasks: i.entity({
+      title: i.string(),
+      category: i.string().indexed(),
+      dueDate: i.number().indexed().optional(),
+      completed: i.boolean().indexed(),
+      isDaily: i.boolean().indexed(),
+      sortOrder: i.number().indexed(),
+      createdAt: i.number().indexed(),
+      description: i.string().optional(),
+      ownerId: i.string().indexed(),
+    }),
+    dailyCompletions: i.entity({
+      dateString: i.string().indexed(),
+      completedAt: i.number(),
+      ownerId: i.string().indexed(),
+    }),
   },
   links: {
     $streams$files: {
@@ -45,6 +61,45 @@ const _schema = i.schema({
         on: "$users",
         has: "many",
         label: "linkedGuestUsers",
+      },
+    },
+    taskOwner: {
+      forward: {
+        on: "tasks",
+        has: "one",
+        label: "owner",
+        onDelete: "cascade",
+      },
+      reverse: {
+        on: "$users",
+        has: "many",
+        label: "tasks",
+      },
+    },
+    dailyCompletionTask: {
+      forward: {
+        on: "dailyCompletions",
+        has: "one",
+        label: "task",
+        onDelete: "cascade",
+      },
+      reverse: {
+        on: "tasks",
+        has: "many",
+        label: "dailyCompletions",
+      },
+    },
+    dailyCompletionOwner: {
+      forward: {
+        on: "dailyCompletions",
+        has: "one",
+        label: "owner",
+        onDelete: "cascade",
+      },
+      reverse: {
+        on: "$users",
+        has: "many",
+        label: "dailyCompletions",
       },
     },
   },

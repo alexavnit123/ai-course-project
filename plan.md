@@ -163,6 +163,46 @@ Permissions auto-filter to current user's tasks. Daily task "done today" = `task
 
 ---
 
+## 9. Phase 2 Enhancements
+
+### 9.1 Calendar Date Picker
+
+Replaced the native `<input type="date">` with a custom `components/ui/DatePicker.tsx` component built on **react-day-picker v9**.
+
+- Trigger button styled to match the existing Input component (border-2, rounded-xl, accent focus ring)
+- Calendar popover opens below the trigger, themed with design system colours (`bg-card`, `border-border`, accent for selected day)
+- Click-outside closes the popover; a clear (×) button on the trigger removes the selected date
+- Used in both `CreateTaskModal` and `TaskDetailModal`
+- `label` prop typed as `React.ReactNode` to allow mixed text/span content
+
+### 9.2 Task Description Field
+
+Added `description: i.string().optional()` to the `tasks` entity in `instant.schema.ts` (schema pushed, no index needed).
+
+- `CreateTaskModal` — optional textarea below the title field
+- `TaskDetailModal` — optional textarea, pre-filled with existing value
+- `TaskCard` — if a description exists, it renders as a truncated subtitle line beneath the task title
+
+### 9.3 Task Detail Modal
+
+New `components/tasks/TaskDetailModal.tsx` opens when clicking anywhere on a task card (excluding the checkbox and `...` context menu).
+
+- Replaces the previous inline title editing on click
+- Editable fields: title, description, category, due date (DatePicker), completion status indicator
+- Delete button (danger style) in the footer
+- Single `db.transact(db.tx.tasks[id].update({...}))` on save
+- `TaskCard` checkbox uses `e.stopPropagation()` so toggling completion does not open the modal
+
+### 9.4 Completed Section Always Visible
+
+Removed the collapse/expand toggle from `CompletedSection.tsx`.
+
+- Completed tasks are always rendered as a visible sub-section within each category column
+- Static "COMPLETED" label with count badge and a divider line replace the toggle button
+- Tasks retain the `opacity-60` visual treatment
+
+---
+
 ## 7. Verification
 
 1. **Schema:** `npx instant-cli push schema --yes` succeeds without errors

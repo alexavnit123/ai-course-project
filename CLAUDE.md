@@ -1,3 +1,54 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+Task & Reminder web app — users authenticate via InstantDB magic codes and manage tasks across three categories (Daily, Personal, Business) with due dates, overdue indicators, drag-and-drop reordering, and daily recurring task tracking. "Soft Brutalism + Linear Minimalism" design. See `plan.md` for the full implementation plan (schema, permissions, file structure, data flows, design system, phased build order).
+
+## Repository Structure
+
+The Next.js app lives in the **nested** `ai-course-project/ai-course-project/` directory. All source files, `package.json`, `instant.schema.ts`, `instant.perms.ts`, and `.env` are inside that subdirectory.
+
+```
+ai-course-project/          ← repo root (plan.md, CLAUDE.md here)
+  ai-course-project/        ← Next.js app root (run all commands from here)
+    app/                    ← Next.js App Router pages
+    components/             ← React components (to be built)
+    lib/                    ← db.ts, constants.ts, utils.ts (to be built)
+    instant.schema.ts       ← InstantDB schema
+    instant.perms.ts        ← InstantDB permissions
+    .env                    ← NEXT_PUBLIC_INSTANT_APP_ID + INSTANT_ADMIN_TOKEN
+```
+
+## Commands
+
+Run all commands from `ai-course-project/ai-course-project/`:
+
+```bash
+npm run dev          # Start dev server
+npm run build        # Production build
+npm run lint         # ESLint
+npx tsc --noEmit     # Type check
+npx instant-cli push schema --yes   # Push schema changes
+npx instant-cli push perms --yes    # Push permission changes
+```
+
+## Key Architecture Decisions
+
+- **Package manager:** npm
+- **Stack:** Next.js 16 (App Router) + React 19 + Tailwind v4 + `@instantdb/react`
+- **Tailwind v4:** Uses `@import "tailwindcss"` in globals.css (not `@tailwind` directives). Add theme tokens in `@theme inline {}` block.
+- **InstantDB singleton:** Export from `lib/db.ts` as `db` — all components import from there.
+- **Auth:** `db.useAuth()` hook; `app/page.tsx` is the auth gate; redirect to `/dashboard` on sign-in.
+- **Permissions:** Both `tasks` and `dailyCompletions` use flat `ownerId` field checked as `auth.id == data.ownerId` — no `data.ref` needed.
+- **Daily task completion:** No cron/reset. `dailyCompletions` records keyed by `dateString` ("YYYY-MM-DD"). New day = no record exists = task unchecked.
+- **Drag-and-drop:** `@dnd-kit/core` + `@dnd-kit/sortable`. Reorder via `sortOrder` midpoint between neighbors (gaps of 1000).
+- **Dashboard query:** Single `db.useQuery({ tasks: { dailyCompletions: { $: { where: { dateString: today } } } } })` — permissions auto-filter to current user.
+- **Client-side sort:** Overdue tasks float to top; within groups sort by `sortOrder` asc.
+
+---
+
 # Implementation Plan
 
 Follow the implementation plan in `plan.md` at the repo root. It defines the schema, permissions, file structure, data flows, design system, and phased build order for the task/reminder app.
