@@ -37,8 +37,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     // Step 1: resolve IP
     const forwarded = req.headers.get("x-forwarded-for");
     const realIp = req.headers.get("x-real-ip");
-    const rawIp = forwarded ? forwarded.split(",")[0].trim() : (realIp ?? "");
-    const ip = rawIp.trim();
+    const ip = forwarded
+      ? forwarded.split(",")[0].trim()
+      : (realIp?.trim() ?? "");
 
     // Step 2: geolocate
     let city: string;
@@ -84,7 +85,14 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     }
     const weather = (await weatherRes.json()) as OpenMeteoResponse;
 
-    // Step 4: shape response
+    // Step 4: validate response and shape data
+    if (
+      !weather.daily?.time?.length ||
+      weather.daily.time.length !== weather.daily.weathercode?.length
+    ) {
+      return NextResponse.json({ error: "Invalid weather data" }, { status: 500 });
+    }
+
     const daily: WeatherDay[] = weather.daily.time.map((date, i) => ({
       date,
       weatherCode: weather.daily.weathercode[i],
