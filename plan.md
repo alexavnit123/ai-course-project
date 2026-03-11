@@ -261,6 +261,69 @@ No schema or InstantDB changes required.
 
 ---
 
+## 11. Task Priority + Per-Section Sort (Phase 4)
+
+### 11.1 Overview
+
+Adds an optional priority level to each task and lets users sort each section independently by manual order, priority, or due date.
+
+### 11.2 Schema Change
+
+Added to the `tasks` entity in `instant.schema.ts`:
+
+```typescript
+priority: i.number().indexed().optional(),
+```
+
+Priority encoding: `1` = High, `2` = Medium, `3` = Low, `undefined` = None. Integer values make ascending sort work naturally (High surfaces first).
+
+Schema pushed via `npx instant-cli push schema --yes`.
+
+### 11.3 Constants
+
+Added to `lib/constants.ts`:
+
+```typescript
+export const PRIORITY_OPTIONS = [
+  { value: 1, label: "High",   dot: "bg-red-500"   },
+  { value: 2, label: "Medium", dot: "bg-amber-400" },
+  { value: 3, label: "Low",    dot: "bg-blue-400"  },
+] as const;
+
+export type Priority = 1 | 2 | 3;
+export type SortMode = "manual" | "priority" | "dueDate";
+```
+
+### 11.4 Component Changes
+
+| Component | Change |
+|---|---|
+| `TaskCard` | Coloured dot (`w-2 h-2 rounded-full`) between drag handle and checkbox; red/amber/blue for High/Medium/Low; hidden when `priority` is undefined |
+| `CreateTaskModal` | Priority picker (None / High / Medium / Low pill buttons with coloured dots) above the category picker; persisted in `db.tx.tasks[id].create({ priority })` |
+| `TaskDetailModal` | Same priority picker pre-populated from `task.priority`; saved in `db.tx.tasks[id].update({ priority })` |
+| `CategorySection` | `sortMode` state (default `"manual"`), `sortOpen` dropdown state, click-outside `useEffect`; sort icon button left of [+]; active sort tints icon accent |
+
+### 11.5 Sort Logic (CategorySection `useMemo`)
+
+| Sort mode | Behaviour |
+|---|---|
+| `manual` | Overdue tasks first, then ascending `sortOrder` (original behaviour) |
+| `priority` | Ascending `priority` (1→2→3→undefined treated as 99); tiebreak by `sortOrder` |
+| `dueDate` | Ascending `dueDate`; tasks with no due date sink to bottom (`Infinity`); tiebreak by `sortOrder` |
+
+### 11.6 Files Changed
+
+| File | Change |
+|---|---|
+| `instant.schema.ts` | Added `priority` field |
+| `lib/constants.ts` | Added `PRIORITY_OPTIONS`, `Priority`, `SortMode` |
+| `components/dashboard/TaskCard.tsx` | Priority dot indicator |
+| `components/tasks/CreateTaskModal.tsx` | Priority picker UI + persistence |
+| `components/tasks/TaskDetailModal.tsx` | Priority picker UI + persistence |
+| `components/dashboard/CategorySection.tsx` | Sort state, dropdown UI, updated sort logic |
+
+---
+
 ## 7. Verification
 
 1. **Schema:** `npx instant-cli push schema --yes` succeeds without errors

@@ -28,6 +28,7 @@ const _schema = i.schema({
       sortOrder: i.number().indexed(),
       createdAt: i.number().indexed(),
       description: i.string().optional(),
+      priority: i.number().indexed().optional(),
       ownerId: i.string().indexed(),
     }),
     dailyCompletions: i.entity({

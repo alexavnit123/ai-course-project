@@ -146,6 +146,21 @@ export function TaskCardContent({
           </svg>
         </button>
 
+        {/* Priority dot */}
+        {task.priority && (
+          <span
+            className={cn(
+              "w-2 h-2 rounded-full shrink-0",
+              task.priority === 1 ? "bg-red-500" :
+              task.priority === 2 ? "bg-amber-400" : "bg-blue-400"
+            )}
+            aria-label={
+              task.priority === 1 ? "High priority" :
+              task.priority === 2 ? "Medium priority" : "Low priority"
+            }
+          />
+        )}
+
         {/* Checkbox */}
         <TaskCheckbox
           checked={isCompleted}
