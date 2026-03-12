@@ -112,36 +112,39 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Page header — greeting left, cleanup banner fills remaining space */}
-      <div className="flex items-center gap-5">
-        <div className="shrink-0">
-          <h1 className="text-2xl font-bold text-foreground">
-            {getTodayGreeting()}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {new Date().toLocaleDateString("en-US", {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-            })}
-            {totalActive > 0 && (
-              <span>
-                {" "}
-                ·{" "}
-                <span className="text-accent font-medium">{totalActive}</span>{" "}
-                task{totalActive !== 1 ? "s" : ""} remaining
-              </span>
-            )}
-          </p>
+      {/* Page header — same grid as daily+weather so banner aligns with Daily Habits card */}
+      <div className="grid grid-cols-1 md:grid-cols-[3fr_1.4fr] gap-5">
+        <div className="flex items-center gap-5">
+          <div className="shrink-0">
+            <h1 className="text-2xl font-bold text-foreground">
+              {getTodayGreeting()}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {new Date().toLocaleDateString("en-US", {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+              })}
+              {totalActive > 0 && (
+                <span>
+                  {" "}
+                  ·{" "}
+                  <span className="text-accent font-medium">{totalActive}</span>{" "}
+                  task{totalActive !== 1 ? "s" : ""} remaining
+                </span>
+              )}
+            </p>
+          </div>
+          <div className="flex-1">
+            <CleanupBanner
+              completedCount={completedTasks.length}
+              showNotification={showNotification}
+              onCleanup={() => setShowCleanupModal(true)}
+              onDismiss={handleDismiss}
+            />
+          </div>
         </div>
-        <div className="flex-1">
-          <CleanupBanner
-            completedCount={completedTasks.length}
-            showNotification={showNotification}
-            onCleanup={() => setShowCleanupModal(true)}
-            onDismiss={handleDismiss}
-          />
-        </div>
+        {/* Right column intentionally empty — aligns with weather column */}
       </div>
 
       {/* ── DAILY + WEATHER — two-column row ── */}
