@@ -38,6 +38,7 @@ const _schema = i.schema({
     }),
     userSettings: i.entity({
       linearApiKey: i.string().optional(),
+      weatherCity: i.string().optional(),
       ownerId: i.string().indexed(),
     }),
   },

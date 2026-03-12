@@ -12,12 +12,16 @@ interface WeatherResponse {
   daily: WeatherDay[];
 }
 
-interface IpapiResponse {
-  city: string;
+interface GeoResult {
+  name: string;
   latitude: number;
   longitude: number;
-  error?: boolean;
-  reason?: string;
+  country: string;
+  admin1?: string;
+}
+
+interface GeocodingResponse {
+  results?: GeoResult[];
 }
 
 interface OpenMeteoResponse {
@@ -29,43 +33,32 @@ interface OpenMeteoResponse {
   };
 }
 
-const LOOPBACK = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
-const DEV_FALLBACK = { city: "London", latitude: 51.5074, longitude: -0.1278 };
-
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
-    // Step 1: resolve IP
-    const forwarded = req.headers.get("x-forwarded-for");
-    const realIp = req.headers.get("x-real-ip");
-    const ip = forwarded
-      ? forwarded.split(",")[0].trim()
-      : (realIp?.trim() ?? "");
+    // Step 1: get city from query param
+    const { searchParams } = new URL(req.url);
+    const cityParam = searchParams.get("city")?.trim();
 
-    // Step 2: geolocate
-    let city: string;
-    let latitude: number;
-    let longitude: number;
-
-    if (!ip || LOOPBACK.has(ip)) {
-      ({ city, latitude, longitude } = DEV_FALLBACK);
-    } else {
-      const geoRes = await fetch(`https://ipapi.co/${ip}/json/`, {
-        cache: "no-store",
-      });
-      if (!geoRes.ok) {
-        return NextResponse.json({ error: "Geolocation failed" }, { status: 500 });
-      }
-      const geo = (await geoRes.json()) as IpapiResponse;
-      if (geo.error) {
-        return NextResponse.json(
-          { error: geo.reason ?? "Geolocation error" },
-          { status: 500 }
-        );
-      }
-      city = geo.city;
-      latitude = geo.latitude;
-      longitude = geo.longitude;
+    if (!cityParam) {
+      return NextResponse.json({ error: "no_city" }, { status: 200 });
     }
+
+    // Step 2: geocode city name → lat/lon
+    const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityParam)}&count=1&language=en&format=json`;
+    const geoRes = await fetch(geoUrl, { cache: "no-store" });
+    if (!geoRes.ok) {
+      return NextResponse.json({ error: "geocoding_failed" }, { status: 200 });
+    }
+    const geoData = (await geoRes.json()) as GeocodingResponse;
+    if (!geoData.results?.length) {
+      return NextResponse.json({ error: "city_not_found" }, { status: 200 });
+    }
+
+    const result = geoData.results[0];
+    const { latitude, longitude } = result;
+    const city = result.name +
+      (result.admin1 ? `, ${result.admin1}` : "") +
+      `, ${result.country}`;
 
     // Step 3: fetch forecast
     const params = new URLSearchParams({
@@ -81,16 +74,16 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       { cache: "no-store" }
     );
     if (!weatherRes.ok) {
-      return NextResponse.json({ error: "Weather fetch failed" }, { status: 500 });
+      return NextResponse.json({ error: "weather_fetch_failed" }, { status: 200 });
     }
     const weather = (await weatherRes.json()) as OpenMeteoResponse;
 
-    // Step 4: validate response and shape data
+    // Step 4: validate and shape
     if (
       !weather.daily?.time?.length ||
       weather.daily.time.length !== weather.daily.weathercode?.length
     ) {
-      return NextResponse.json({ error: "Invalid weather data" }, { status: 500 });
+      return NextResponse.json({ error: "invalid_weather_data" }, { status: 200 });
     }
 
     const daily: WeatherDay[] = weather.daily.time.map((date, i) => ({
@@ -105,6 +98,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       headers: { "Cache-Control": "private, max-age=3600" },
     });
   } catch {
-    return NextResponse.json({ error: "Unexpected error" }, { status: 500 });
+    return NextResponse.json({ error: "unexpected_error" }, { status: 200 });
   }
 }

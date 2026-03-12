@@ -86,7 +86,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── DAILY + WEATHER — two-column row ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch">
+      <div className="grid grid-cols-1 md:grid-cols-[3fr_1fr] gap-5 items-stretch">
         {/* Left: Daily Habits */}
         <div className="rounded-2xl border-2 border-accent/25 bg-accent-light p-5 shadow-[4px_4px_0px_0px_rgba(108,92,231,0.12)] h-full">
           <CategorySection

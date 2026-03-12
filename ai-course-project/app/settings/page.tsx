@@ -7,14 +7,17 @@ import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import IntegrationCard from "@/components/settings/IntegrationCard";
 import Button from "@/components/ui/Button";
 import ConnectLinearModal from "@/components/settings/ConnectLinearModal";
+import CityPromptModal from "@/components/dashboard/CityPromptModal";
 
 function SettingsContent() {
   const { user } = db.useAuth();
   const [showConnectModal, setShowConnectModal] = useState(false);
+  const [showCityModal, setShowCityModal] = useState(false);
   const { data: settingsData } = db.useQuery({ userSettings: {} });
   const userSettings = settingsData?.userSettings?.[0];
   const linearApiKey = userSettings?.linearApiKey ?? null;
   const linearConnected = !!linearApiKey;
+  const weatherCity = userSettings?.weatherCity ?? null;
 
   const handleDisconnect = () => {
     if (userSettings) db.transact(db.tx.userSettings[userSettings.id].delete());
@@ -64,6 +67,33 @@ function SettingsContent() {
             onClick={() => db.auth.signOut()}
           >
             Sign out
+          </Button>
+        </div>
+      </section>
+
+      {/* Weather */}
+      <section>
+        <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
+          Weather
+        </h2>
+        <div className="bg-card rounded-2xl border-2 border-border p-5 shadow-[4px_4px_0px_0px_rgba(108,92,231,0.06)] flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-accent-light flex items-center justify-center shrink-0 text-xl">
+            🌤️
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-foreground">
+              {weatherCity ?? "No city set"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {weatherCity ? "Your weather location" : "Set a city to see the forecast on your dashboard"}
+            </p>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setShowCityModal(true)}
+          >
+            {weatherCity ? "Change" : "Set City"}
           </Button>
         </div>
       </section>
@@ -157,6 +187,14 @@ function SettingsContent() {
         <ConnectLinearModal
           isOpen={showConnectModal}
           onClose={() => setShowConnectModal(false)}
+          userId={user.id}
+          existingSettingsId={userSettings?.id}
+        />
+      )}
+      {user && showCityModal && (
+        <CityPromptModal
+          isOpen={showCityModal}
+          onClose={() => setShowCityModal(false)}
           userId={user.id}
           existingSettingsId={userSettings?.id}
         />
