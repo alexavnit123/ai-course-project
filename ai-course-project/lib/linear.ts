@@ -39,3 +39,10 @@ export interface LinearApiResponse {
   connected: boolean;
   issues: LinearIssue[];
 }
+
+export const STATE_TYPE_ORDER: Record<string, number> = {
+  triage: 0,
+  backlog: 1,
+  unstarted: 2,
+  started: 3,
+};
