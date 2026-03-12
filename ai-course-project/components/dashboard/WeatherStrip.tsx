@@ -60,14 +60,14 @@ export default function WeatherStrip() {
   if (status === "no_city") {
     return (
       <>
-        <div className="flex flex-col items-center justify-center h-full gap-3 py-8">
-          <span className="text-4xl">🌤️</span>
-          <p className="text-sm text-muted-foreground text-center">
-            Set your city to see the<br />local weather forecast
+        <div className="flex flex-col gap-3 pt-2">
+          <span className="text-3xl">🌤️</span>
+          <p className="text-sm text-muted-foreground">
+            Set your city to see the<br />local forecast
           </p>
           <button
             onClick={() => setShowCityModal(true)}
-            className="px-4 py-2 rounded-xl border-2 border-border text-sm font-semibold hover:border-accent/60 transition-all"
+            className="self-start px-3 py-1.5 rounded-xl border-2 border-border text-sm font-semibold hover:border-accent/60 transition-all"
           >
             Set City
           </button>
@@ -101,10 +101,10 @@ export default function WeatherStrip() {
 
   return (
     <>
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col">
         <div className="flex items-center gap-1.5 mb-3">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            Weather Forecast ({city})
+          <p className="text-sm font-semibold text-foreground">
+            {city}
           </p>
           <button
             onClick={() => setShowCityModal(true)}

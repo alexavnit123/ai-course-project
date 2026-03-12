@@ -98,8 +98,8 @@ export default function DashboardPage() {
             progressLabel={dailyTotal > 0 ? `${dailyDone}/${dailyTotal}` : undefined}
           />
         </div>
-        {/* Right: Weather */}
-        <div className="rounded-2xl border-2 border-border bg-card p-5 shadow-[4px_4px_0px_0px_rgba(108,92,231,0.06)] h-full">
+        {/* Right: Weather — borderless, floats on page background */}
+        <div className="px-2 pt-1 self-start">
           <WeatherStrip />
         </div>
       </div>
