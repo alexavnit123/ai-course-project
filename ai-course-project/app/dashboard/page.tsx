@@ -112,9 +112,9 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Page header — two-column to align with daily+weather grid below */}
-      <div className="grid grid-cols-1 md:grid-cols-[3fr_1.4fr] gap-5 items-start">
-        <div>
+      {/* Page header — greeting left, cleanup banner fills remaining space */}
+      <div className="flex items-center gap-5">
+        <div className="shrink-0">
           <h1 className="text-2xl font-bold text-foreground">
             {getTodayGreeting()}
           </h1>
@@ -134,12 +134,14 @@ export default function DashboardPage() {
             )}
           </p>
         </div>
-        <CleanupBanner
-          completedCount={completedTasks.length}
-          showNotification={showNotification}
-          onCleanup={() => setShowCleanupModal(true)}
-          onDismiss={handleDismiss}
-        />
+        <div className="flex-1">
+          <CleanupBanner
+            completedCount={completedTasks.length}
+            showNotification={showNotification}
+            onCleanup={() => setShowCleanupModal(true)}
+            onDismiss={handleDismiss}
+          />
+        </div>
       </div>
 
       {/* ── DAILY + WEATHER — two-column row ── */}
