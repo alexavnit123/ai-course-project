@@ -99,7 +99,7 @@ export default function DashboardPage() {
           />
         </div>
         {/* Right: Weather — borderless, floats on page background */}
-        <div className="px-2 pt-1">
+        <div className="px-2 pt-1 h-full">
           <WeatherStrip />
         </div>
       </div>

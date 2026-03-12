@@ -101,7 +101,7 @@ export default function WeatherStrip() {
 
   return (
     <>
-      <div className="flex flex-col">
+      <div className="flex flex-col h-full">
         <div className="flex items-center gap-1.5 mb-3">
           <p className="text-sm font-semibold text-foreground">
             {city}
