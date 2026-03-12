@@ -6,6 +6,7 @@ import AuthGate from "@/components/auth/AuthGate";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import IntegrationCard from "@/components/settings/IntegrationCard";
 import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
 import ConnectLinearModal from "@/components/settings/ConnectLinearModal";
 import CityPromptModal from "@/components/dashboard/CityPromptModal";
 
@@ -13,11 +14,23 @@ function SettingsContent() {
   const { user } = db.useAuth();
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [showCityModal, setShowCityModal] = useState(false);
+  const [archiveSearch, setArchiveSearch] = useState("");
+
   const { data: settingsData } = db.useQuery({ userSettings: {} });
   const userSettings = settingsData?.userSettings?.[0];
   const linearApiKey = userSettings?.linearApiKey ?? null;
   const linearConnected = !!linearApiKey;
   const weatherCity = userSettings?.weatherCity ?? null;
+
+  const { data: archiveData } = db.useQuery({
+    tasks: { $: { where: { archived: true } } },
+  });
+  const archivedTasks = archiveData?.tasks ?? [];
+  const filteredArchived = archiveSearch.trim()
+    ? archivedTasks.filter((t) =>
+        t.title.toLowerCase().includes(archiveSearch.toLowerCase())
+      )
+    : archivedTasks;
 
   const handleDisconnect = () => {
     if (userSettings) db.transact(db.tx.userSettings[userSettings.id].delete());
@@ -180,6 +193,60 @@ function SettingsContent() {
               </svg>
             }
           />
+        </div>
+      </section>
+
+      {/* Archives */}
+      <section>
+        <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
+          Archives
+        </h2>
+        <div className="bg-card rounded-2xl border-2 border-border p-5 shadow-[4px_4px_0px_0px_rgba(108,92,231,0.06)] flex flex-col gap-4">
+          <Input
+            placeholder="Search archived tasks…"
+            value={archiveSearch}
+            onChange={(e) => setArchiveSearch(e.target.value)}
+          />
+          <div className="flex flex-col max-h-72 overflow-y-auto -mx-1 px-1">
+            {filteredArchived.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-2">
+                {archiveSearch.trim() ? "No results found." : "No archived tasks yet."}
+              </p>
+            ) : (
+              filteredArchived.map((task, i) => (
+                <div
+                  key={task.id}
+                  className={`flex items-center justify-between gap-3 py-2.5 ${
+                    i < filteredArchived.length - 1 ? "border-b border-border" : ""
+                  }`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {task.title}
+                    </p>
+                    <p className="text-xs text-muted-foreground capitalize">
+                      {task.category}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() =>
+                      db.transact(
+                        db.tx.tasks[task.id].update({ archived: false })
+                      )
+                    }
+                    className="text-xs font-semibold text-accent hover:opacity-70 transition-opacity shrink-0"
+                  >
+                    Restore
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+          {archivedTasks.length > 0 && (
+            <p className="text-xs text-muted-foreground -mt-1">
+              {archivedTasks.length} archived task{archivedTasks.length !== 1 ? "s" : ""}
+            </p>
+          )}
         </div>
       </section>
 

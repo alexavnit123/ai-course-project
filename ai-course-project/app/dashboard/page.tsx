@@ -1,11 +1,22 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { db } from "@/lib/db";
 import { getTodayString } from "@/lib/utils";
 import { Category } from "@/lib/constants";
 import CategorySection from "@/components/dashboard/CategorySection";
 import WeatherStrip from "@/components/dashboard/WeatherStrip";
+import CleanupBanner from "@/components/dashboard/CleanupBanner";
+import CleanupModal from "@/components/dashboard/CleanupModal";
+
+function getMostRecentSundayString(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - d.getDay());
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 export default function DashboardPage() {
   const today = getTodayString();
@@ -13,9 +24,17 @@ export default function DashboardPage() {
 
   const { data, isLoading, error } = db.useQuery({
     tasks: {
+      $: { where: { archived: { $ne: true } } },
       dailyCompletions: { $: { where: { dateString: today } } },
     },
   });
+
+  const [showCleanupModal, setShowCleanupModal] = useState(false);
+  const [dismissedDate, setDismissedDate] = useState<string | null>(() =>
+    typeof window !== "undefined"
+      ? localStorage.getItem("cleanup_dismissed_date")
+      : null
+  );
 
   const tasksByCategory = useMemo(() => {
     type TaskArr = NonNullable<typeof data>["tasks"];
@@ -31,6 +50,31 @@ export default function DashboardPage() {
     }
     return result;
   }, [data?.tasks]);
+
+  const allTasks = data?.tasks ?? [];
+  const completedTasks = allTasks.filter((t) => !t.isDaily && t.completed);
+
+  const dayOfWeek = new Date().getDay();
+  const lastSunday = getMostRecentSundayString();
+  const showNotification =
+    (dayOfWeek === 0 || dayOfWeek === 1) &&
+    (!dismissedDate || dismissedDate < lastSunday);
+
+  function handleDismiss() {
+    localStorage.setItem("cleanup_dismissed_date", today);
+    setDismissedDate(today);
+  }
+
+  function handleCleanup() {
+    if (completedTasks.length > 0) {
+      db.transact(
+        completedTasks.map((t) => db.tx.tasks[t.id].update({ archived: true }))
+      );
+    }
+    localStorage.setItem("cleanup_dismissed_date", today);
+    setDismissedDate(today);
+    setShowCleanupModal(false);
+  }
 
   if (!user) return null;
 
@@ -54,19 +98,26 @@ export default function DashboardPage() {
 
   const totalActive = Object.values(tasksByCategory).reduce(
     (sum, tasks) =>
-      sum + tasks.filter((t) => (t.isDaily ? t.dailyCompletions.length === 0 : !t.completed)).length,
+      sum +
+      tasks.filter((t) =>
+        t.isDaily ? t.dailyCompletions.length === 0 : !t.completed
+      ).length,
     0
   );
 
   const dailyTotal = tasksByCategory.daily.length;
-  const dailyDone = tasksByCategory.daily.filter((t) => t.dailyCompletions.length > 0).length;
+  const dailyDone = tasksByCategory.daily.filter(
+    (t) => t.dailyCompletions.length > 0
+  ).length;
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Page header */}
-      <div className="flex items-baseline justify-between">
+      {/* Page header — two-column to align with daily+weather grid below */}
+      <div className="grid grid-cols-1 md:grid-cols-[3fr_1.4fr] gap-5 items-start">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{getTodayGreeting()}</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            {getTodayGreeting()}
+          </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {new Date().toLocaleDateString("en-US", {
               weekday: "long",
@@ -83,6 +134,12 @@ export default function DashboardPage() {
             )}
           </p>
         </div>
+        <CleanupBanner
+          completedCount={completedTasks.length}
+          showNotification={showNotification}
+          onCleanup={() => setShowCleanupModal(true)}
+          onDismiss={handleDismiss}
+        />
       </div>
 
       {/* ── DAILY + WEATHER — two-column row ── */}
@@ -125,6 +182,13 @@ export default function DashboardPage() {
           userId={user.id}
         />
       </div>
+
+      <CleanupModal
+        isOpen={showCleanupModal}
+        onClose={() => setShowCleanupModal(false)}
+        completedCount={completedTasks.length}
+        onConfirm={handleCleanup}
+      />
     </div>
   );
 }

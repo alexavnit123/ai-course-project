@@ -30,6 +30,7 @@ const _schema = i.schema({
       description: i.string().optional(),
       priority: i.number().indexed().optional(),
       ownerId: i.string().indexed(),
+      archived: i.boolean().indexed().optional(),
     }),
     dailyCompletions: i.entity({
       dateString: i.string().indexed(),
